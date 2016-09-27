@@ -1,97 +1,93 @@
 from pathlib import Path
-from shutil import copyfile
-
-p = Path()
-search_setting = str()
-search_value = str()
-search_action = str()
+import shutil
+'''-------------input-------------'''
 def input_path():
-    global p
     p = Path(input())
-    if p.exists() == False:
-        print('ERROR')
+    if not p.exists():
+        print('ERROR1')
         input_path()
+    return p
+def input_attributes()->list:
+    search_att = input()
+    setting = str()
+    val = str()
+    if search_att[0] not in ['N','E','S'] and not search_att[1] == ' ':
+        print('ERROR2')
+        input_attributes()
+    setting = search_att[0]
+    val = search_att[2:]
+    if search_att[0] == 'S':
+        try:
+            val = int(search_att[2:])
+        except TypeError:
+            print('ERROR3')
+            input_attributes()
+    return [setting,val]
 
-def input_settings():
-    search_param = input()
-    global search_setting, search_value
-    search_setting = search_param[0]
-    if search_setting not in ['N','E','S']:
-        print('ERROR')
-        input_actions()
-    try:
-        search_param[2]          
-    except IndexError:
-        print('ERROR')
-        input_settings()
-    search_value = search_param[2:]
-    if search_param[1] == ' ':
-        if search_setting == 'N':
-            pass
-        elif search_setting == 'E':
-            if search_value[0] == '.':
-                search_value = search_value[1:]
-        elif search_setting == 'S':
-            try:
-                search_value = int(search_value)
-            except ValueError:
-                print('ERROR')
-                input_settings()
-        else:
-            print('ERROR')
-            input_settings()
-
-def input_actions():
-    global search_action
-    search_action = input()
-    if search_action not in ['P','F','D','T']:
-        print('ERROR')
-        input_actions()
-
-def browse_folders(path):
-    for i in path.iterdir():
+def input_action()->str:
+    search_act = input()
+    if search_act not in ['P','F','D','T']:
+        print('ERROR4')
+        input_action()
+    return search_act
+'''----------action handling--------------'''
+def find_name(val:str,act:str,p:Path):
+    for i in p.iterdir():
         if i.is_dir():
-            browse_folders(i)
-        elif i.is_file():
-            execute_search(i)
-
-def search_name(f):
-    if (f.name.split('.')[0]) == search_value:
-        execute_action(f)
-
-def search_ext(f):
-    if search_value in (f.suffixes):
-        execute_action(f)
-
-def search_size(f):
-    if f.stat().st_size >= search_value:
-        execute_action(f)
-def execute_search(f):
-    if search_setting == 'N':
-        search_name(f)
-    elif search_setting == 'E':
-        search_ext(f)
-    elif search_setting == 'S':
-        search_size(f)
-
-def execute_action(f):
-    if search_action == 'P':
-        print(f)
-    if search_action == 'F':
-        print(f)
-        print(f.open().readline())
-    if search_action =='D':
-        print(f)
-        copyfile(str(p),str(p)+'.dup')
-    if search_action == 'T':
-        print(f)
-        f.touch()
-
+            find_name(val,act,i)
+        else:
+            try:
+                if val == i.name[0:i.name.index('.')]:
+                    act_handler(i,act)
+                else:
+                    continue
+            except ValueError:
+                continue            
+def find_ext(val:str,act:str,p:Path):
+    if val[0] == '.':
+        val = val[1:]
+    for i in p.iterdir():
+        if i.is_dir():
+            find_ext(val,act,i)
+        else:
+            if val == i.suffix[1:]:
+                act_handler(i,act)
+            else:
+                continue
+def find_size(val:int,act:str,p:Path):
+    for i in p.iterdir():
+        if i.is_dir():
+            find_size(val,act,i)
+        else:
+            if i.stat().st_size >= val:
+                act_handler(i,act)
+            else:
+                continue
+def act_open(p):
+    print(p.open().readline())
+def act_copy(p):
+    shutil.copy(str(p),str(p.with_name(p.name + '.dup')))
+def act_touch(p):
+    p.touch()
+def act_handler(p,act:str):
+    print(p)
+    if act == 'F':
+        act_open(p)
+    elif act == 'D':
+        act_copy(p)
+    elif act == 'T':
+        act_touch(p)
+def search_handler(attr: list, act:str, p:Path):
+    if attr[0] == 'N':
+        find_name(attr[1],act,p)
+    elif attr[0] == 'E':
+        find_ext(attr[1],act,p)
+    elif attr[0] == 'S':
+        find_size(attr[1],act,p)
 def main():
-    input_path()
-    input_settings()
-    input_actions()
-    browse_folders(p)
-
+    p = input_path()
+    a = input_attributes()
+    act = input_action()
+    search_handler(a,act,p)
 if __name__ == '__main__':
     main()
